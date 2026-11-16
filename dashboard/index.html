@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Radar — pre-token protocols ranked by implied launch value</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div>
+      <p class="eyebrow">TOKEN RADAR &middot; MODEL RADAR-2</p>
+      <h1>Which pre-token protocol is worth farming next?</h1>
+      <p class="lede">Every protocol in the sealed snapshot that records no token yet, ranked by what its
+      launch would be worth if its record stayed as it is. Implied value is this radar&rsquo;s own
+      claim, never a prediction that a token will launch, or when.</p>
+    </div>
+    <dl class="stats" id="stats"></dl>
+  </div>
+  <p class="asof" id="asof"></p>
+</header>
+
+<main>
+  <section class="panel model" aria-label="How the value is computed">
+    <h2>How the value is computed</h2>
+    <p class="formula">implied value = TVL &times; category multiple &times; growth multiplier &times; maturity multiplier</p>
+    <p>The <strong>category multiple</strong> is the market&rsquo;s own pricing: the median market-cap-to-TVL
+    ratio of live-token protocols in the same category (at least 4 of them), otherwise the global median,
+    winsorised to 0.05&ndash;0.80. <strong>Growth</strong> is the 7-day TVL change, clamped to &minus;60%&hellip;+120%,
+    at half weight. <strong>Maturity</strong> rises from 0.60 to 1.00 over a protocol&rsquo;s first three years
+    with no token. No protocol name is ever special-cased: the same formula scores every row.</p>
+    <div class="sandbox" id="sandbox">
+      <h3>Model sandbox &mdash; move the dials, the board re-ranks live</h3>
+      <div class="dials">
+        <label>Growth weight <output id="wOut">0.50</output>
+          <input type="range" id="wGrowth" min="0" max="1" step="0.05" value="0.5"></label>
+        <label>Maturity floor <output id="fOut">0.60</output>
+          <input type="range" id="wFloor" min="0.4" max="0.8" step="0.05" value="0.6"></label>
+        <label>Multiple cap <output id="cOut">0.80</output>
+          <input type="range" id="wCap" min="0.2" max="1.5" step="0.05" value="0.8"></label>
+      </div>
+      <p class="sandbox-note" id="sandboxNote">Dials at the model&rsquo;s published settings.</p>
+    </div>
+    <details class="multiples">
+      <summary>Category multiples used by the model (live-token medians)</summary>
+      <table class="mini" id="multiplesTable"></table>
+    </details>
+  </section>
+
+  <section class="panel controls" aria-label="Filter the board">
+    <div class="row">
+      <label class="grow">Search
+        <input type="search" id="q" placeholder="Protocol name or slug&hellip;" autocomplete="off"></label>
+      <label>Category
+        <select id="category"><option value="">All categories</option></select></label>
+      <label>Chain
+        <select id="chain"><option value="">All chains</option></select></label>
+      <label>Sort by
+        <select id="sort">
+          <option value="value">Implied value (high to low)</option>
+          <option value="tvl">TVL (high to low)</option>
+          <option value="growth">7-day change (high to low)</option>
+          <option value="age">Age with no token (old to young)</option>
+          <option value="name">Name (A to Z)</option>
+        </select></label>
+      <label class="check"><input type="checkbox" id="watchlistOnly"> Watchlist only</label>
+    </div>
+    <p class="count" id="count"></p>
+  </section>
+
+  <section class="panel detail" id="detail" hidden aria-label="Protocol detail"></section>
+
+  <section class="panel board" id="board" aria-label="The ranked board">
+    <h2>The board <span class="sub" id="boardSub"></span></h2>
+    <div class="table-wrap">
+      <table id="boardTable">
+        <thead>
+          <tr>
+            <th class="num">#</th><th>Protocol</th><th>Category</th><th>Chains</th>
+            <th class="num">TVL</th><th class="num">7-day</th><th class="num">Age</th>
+            <th class="num">Multiple</th><th class="num">Implied value</th><th>Farm plan</th>
+          </tr>
+        </thead>
+        <tbody id="boardBody"></tbody>
+      </table>
+    </div>
+    <p class="empty" id="empty" hidden>No protocol matches this filter. Clear the search or pick another category.</p>
+    <p class="legend">* Multiple is the global median: too few live-token protocols share that category to price it on its own.</p>
+  </section>
+
+  <section class="panel live" aria-label="Protocols whose token already trades">
+    <h2>Already trading &mdash; the market&rsquo;s own values</h2>
+    <p>These protocols record a token, so they are <strong>not</strong> ranked on the board. They are the
+    comparables the multiples above come from: the market cap the market already gives them, next to
+    their TVL. A pre-token protocol&rsquo;s implied value is its TVL priced the way these are priced.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Protocol</th><th>Category</th><th>Chains</th>
+          <th class="num">TVL</th><th class="num">Market cap</th><th class="num">Mcap / TVL</th><th class="num">7-day</th></tr>
+        </thead>
+        <tbody id="liveBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="panel foot">
+    <h2>Read this before you farm</h2>
+    <ul>
+      <li>“Records no token” means the snapshot&rsquo;s DefiLlama record carries no token for the protocol.
+      It is not proof that none exists: a protocol on this board may still have a token its record does not carry.</li>
+      <li>Wrapped, staked and bridged products of tokens that already trade are left off the board entirely:
+      they are not launches still to come.</li>
+      <li>Implied value is a ranking device, not a price target and not financial advice. Never pay to claim
+      an airdrop, and never connect a wallet holding funds you cannot afford to lose.</li>
+      <li>Data: sealed DefiLlama snapshot, protocols at or above $5,000,000 TVL. The watchlist floor is
+      $50,000,000 TVL. Farm plans are generated from each protocol&rsquo;s own category, chains, TVL and age.</li>
+    </ul>
+  </footer>
+</main>
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
